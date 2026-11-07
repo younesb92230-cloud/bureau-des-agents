@@ -147,11 +147,13 @@ const SIGN: Record<string, string> = Object.fromEntries(EQUIPE.map((m) => [m.rol
 /** Les écriteaux posés au coin de chaque tapis, avec le nombre d'agents au travail dans le coin. */
 export function signs(g: G, busy: (role: string) => number) {
   for (const z of ZONES) {
+    // Younes a déjà son prénom au-dessus de la tête (et Max s'assoit juste devant l'écriteau)
+    if (z.role === 'patron') continue;
     const n = busy(z.role);
-    const label = (SIGN[z.role] ?? z.label.toUpperCase()) + (n > 1 && z.role !== 'patron' ? ` ${n}` : '');
+    const label = (SIGN[z.role] ?? z.label.toUpperCase()) + (n > 1 ? ` ${n}` : '');
     const color = ROLES[z.role].color;
     const w = textWidth(label) + 6;
-    const x = z.x * T + 4, y = z.role === 'patron' ? (z.y + z.h) * T - 12 : z.y * T + 3;
+    const x = z.x * T + 4, y = z.y * T + 3;
     rect(g, x + 1, y, w - 2, 9, '#120f19');
     rect(g, x, y + 1, w, 7, '#120f19');
     hline(g, x + 1, y, w - 2, mix(color, '#120f19', 0.45));

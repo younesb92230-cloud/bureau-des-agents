@@ -68,8 +68,9 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   for (const w of WINDOWS) if (inRect(x, y, { x: w.x - 3, y: w.y - 3, w: w.w + 6, h: w.h + 8 })) return { kind: 'object', id: 'window', label: 'La fenêtre (jour, soir ou nuit)' };
   if (inRect(x, y, DOOR)) return { kind: 'object', id: 'door', label: 'La porte : c’est par là qu’arrive l’équipe' };
   for (const z of ZONES) {
+    if (z.role === 'patron') continue;
     const w = textWidth(ZONE_SIGN[z.role] ?? z.label) + 10;
-    const sx = z.x * T + 4, sy = z.role === 'patron' ? (z.y + z.h) * T - 12 : z.y * T + 3;
+    const sx = z.x * T + 4, sy = z.y * T + 3;
     if (inRect(x, y, { x: sx, y: sy, w, h: 9 })) return { kind: 'object', id: `zone:${z.role}`, label: `${z.label} : sa fiche, ses outils, son apparence`, role: z.role };
   }
   return null;

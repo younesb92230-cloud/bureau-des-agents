@@ -43,9 +43,9 @@ export interface Zone { role: Role; label: string; x: number; y: number; w: numb
 /** Les coins du bureau (le tapis au sol et l'étiquette). Un coin par membre de l'équipe, Younes au centre. */
 export const ZONES: Zone[] = [
   { role: 'equations', label: 'Virgile, équations et bases', x: 1, y: 3, w: 6, h: 3 },
-  { role: 'jury', label: 'Adrien, le jury', x: 15, y: 3, w: 4, h: 3 },
-  { role: 'corrections', label: 'Nathan, corrections', x: 1, y: 10, w: 4, h: 3 },
-  { role: 'langue', label: 'Dayen, langue et sens', x: 15, y: 10, w: 4, h: 3 },
+  { role: 'jury', label: 'Adrien, le jury', x: 15, y: 3, w: 6, h: 3 },
+  { role: 'corrections', label: 'Nathan, corrections', x: 1, y: 10, w: 6, h: 3 },
+  { role: 'langue', label: 'Dayen, langue et sens', x: 15, y: 10, w: 6, h: 3 },
   { role: 'patron', label: 'Younes, le patron', x: 9, y: 6, w: 4, h: 3 },
 ];
 

@@ -148,15 +148,21 @@ function deskSprite(role: Role, seed: number): Sprite {
       dashboard(g, 22, 1);
       calculator(g, 2, 9);
       break;
-    case 'corrections': // Nathan : le manuscrit et son café
+    case 'corrections': // Nathan : le manuscrit, un cactus et un café
       laptop(g, 10, 8);
+      cactus(g, 20, 5);
       papers(g, 2, 10, 4);
       mug(g, 24, 11, ROLES.corrections.color);
       break;
-    case 'langue': // Dayen : les dictionnaires du monde entier
-      laptop(g, 10, 8);
-      globe(g, 23, 4);
-      papers(g, 2, 10, 3);
+    case 'langue': // Dayen : la liseuse des articles, le globe des langues, les marque-pages de couleur
+      tablet(g, 9, 11);
+      globe(g, 2, 4);
+      swatches(g, 23, 10);
+      break;
+    case 'chef': // Max : ses deux écrans pour suivre toute l'équipe
+      monitorBack(g, 1, 1);
+      monitorBack(g, 22, 1);
+      keyboard(g, 10, 13);
       break;
     default:
       laptop(g, 10, 8);

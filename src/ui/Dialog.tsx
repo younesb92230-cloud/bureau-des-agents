@@ -12,20 +12,20 @@ import { dictationHelp, useDictation } from './voice.ts';
 
 export const EXAMPLES: { label: string; prompt: string }[] = [
   {
-    label: '🔎 Analyse mes concurrents',
-    prompt: 'Analyse mes 5 principaux concurrents : pour chacun, son offre, ses prix et ce que ses clients en disent. Lance un chercheur par concurrent, puis rends-moi un tableau comparatif et 3 idées concrètes pour me démarquer.',
+    label: '🔎 Teste mon équation',
+    prompt: 'Voici ma question PICOS (dans le fichier joint). Demande à Virgile de construire l’équation de recherche pour PubMed, PEDro, Cochrane CENTRAL et SPORTDiscus, avec le nombre de résultats et la date de chaque recherche. Rends-moi un tableau prêt à mettre dans ma méthode.',
   },
   {
-    label: '📰 Ma veille IA',
-    prompt: 'Fais ma veille IA de la semaine : les 5 nouveautés qui comptent pour un entrepreneur (outils, annonces, usages), avec pour chacune une phrase sur ce que ça change pour moi et le lien de la source.',
+    label: '⚖️ Le jury relit ma méthode',
+    prompt: 'Demande à Adrien de relire ma partie méthode comme le ferait le jury : classe ses remarques (bloquant, important, détail) et donne-moi les 5 questions qu’on risque de me poser à la soutenance.',
   },
   {
-    label: '🌐 Ma page de vente',
-    prompt: 'Crée la page de vente de mon offre : une page web moderne en un seul fichier, avec un titre fort, les bénéfices, une section témoignages à compléter et un bouton d’appel à l’action. Fais-la relire par un rédacteur.',
+    label: '✏️ Corrige mon introduction',
+    prompt: 'Demande à Nathan de corriger mon introduction : orthographe, typographie, et vérifie que chaque référence [n] a bien sa place dans la bibliographie. Rends-moi un tableau avant / après / pourquoi, sans toucher au fond.',
   },
   {
-    label: '✍️ 3 posts LinkedIn',
-    prompt: 'Écris-moi 3 posts LinkedIn sur mon activité, chacun avec une accroche différente, et prépare un visuel de citation en HTML pour le meilleur des trois.',
+    label: '🌍 Vérifie mes traductions',
+    prompt: 'Demande à Dayen de comparer les phrases de mon introduction aux articles d’où elles viennent (les PDF du dossier) : pour chaque phrase, la phrase originale, le verdict (fidèle, à nuancer, faux) et le mot juste.',
   },
 ];
 
@@ -162,7 +162,7 @@ function Composer() {
 
   const mode: 'new' | 'steer' | 'retouch' = !mission ? 'new' : busy ? 'steer' : 'retouch';
   const placeholder = mode === 'new'
-    ? 'Dis à Max ce que tu veux… (par exemple : analyse mes 5 concurrents)'
+    ? 'Dis à Max ce que tu veux… (par exemple : teste mon équation dans PubMed)'
     : mode === 'steer' ? 'Une précision pour Max ? Il la lira entre deux étapes.' : 'Demande une retouche à Max… ou lance une nouvelle mission.';
 
   const submit = () => {

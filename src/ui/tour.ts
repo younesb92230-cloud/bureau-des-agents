@@ -4,14 +4,15 @@ import { say, stopVoice, type Line } from '../audio/voice.ts';
 import { camera, world } from '../engine/instance.ts';
 import { useOffice } from '../state/store.ts';
 
-const STEPS: { line: Line; text: string; shot: [number, number, number] }[] = [
+// Les répliques sans « line » n'ont pas de voix enregistrée : elles s'affichent seulement (le temps de les lire).
+const STEPS: { line?: Line; text: string; shot: [number, number, number] }[] = [
   { line: 'visite-1', text: 'Bienvenue dans mon bureau ! Moi, c’est Max, le chef. Ici, une équipe d’agents IA bosse pour toi, jour et nuit.', shot: [176, 186, 1.9] },
-  { line: 'visite-2', text: 'Là, c’est la recherche. Mes chercheurs fouillent internet pour toi. Les prix, tes concurrents, les avis clients.', shot: [64, 104, 1.7] },
-  { line: 'visite-3', text: 'Ici, l’atelier code. Ils construisent tes sites, tes outils, tes automatisations.', shot: [288, 76, 1.95] },
-  { line: 'visite-4', text: 'Le studio design. Tout ce qui doit être beau passe par ici.', shot: [276, 124, 1.95] },
-  { line: 'visite-5', text: 'La rédaction. Tes posts, tes mails, tes scripts vidéo.', shot: [64, 188, 1.95] },
-  { line: 'visite-6', text: 'Et l’analyse. Les chiffres, les tableaux, et les conclusions qui comptent.', shot: [258, 188, 1.95] },
-  { line: 'visite-7', text: 'Sur ce tableau, j’écris le plan de chaque mission. Et chaque rapport finit sur mon bureau.', shot: [176, 46, 2.05] },
+  { text: 'Au centre, c’est toi, Younes, le patron. Chaque rapport de l’équipe finit sur ton bureau.', shot: [176, 112, 2.1] },
+  { text: 'Là, Virgile. Il construit tes équations de recherche, base par base, et compte les résultats.', shot: [64, 76, 1.9] },
+  { text: 'Ici, Adrien. Il joue le jury et traque les failles de ta méthode, avant la soutenance.', shot: [276, 76, 1.95] },
+  { text: 'Nathan corrige la forme : l’orthographe, la typographie et les références.', shot: [56, 188, 1.95] },
+  { text: 'Et Dayen, polyglotte. Chaque mot repris d’un article doit dire exactement ce que dit la source.', shot: [276, 188, 1.95] },
+  { text: 'Sur ce tableau, j’écris le plan de chaque mission. Moi, je suis à mon poste, juste devant le tien.', shot: [176, 46, 2.05] },
   { line: 'visite-8', text: 'Toi, tu me dis ce que tu veux. Je monte l’équipe. Et tu regardes.', shot: [176, 128, 1] },
 ];
 
@@ -32,7 +33,7 @@ export async function startTour() {
     useOffice.setState({ tour: { step: i, text: s.text } });
     if (i === 0 || i === STEPS.length - 1) world.chef.happyUntil = world.time + 2;
     const t0 = Date.now();
-    await say(s.line, true);
+    if (s.line) await say(s.line, true);
     // sans la voix (ou si elle est coupée), on laisse le temps de lire
     const minMs = 900 + s.text.length * 38;
     const spent = Date.now() - t0;

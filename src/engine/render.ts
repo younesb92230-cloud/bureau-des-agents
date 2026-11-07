@@ -104,6 +104,20 @@ export class Renderer {
       const on = t - who.actAt < 9;
       const col = on && who.act ? SCREEN[who.act] : '#5b6b8c';
       switch (f.role) {
+        case 'chef': {
+          // le reflet de l'écran sur les bords des moniteurs
+          for (const mx of [1, 22]) {
+            g.fillStyle = col;
+            g.fillRect(p.x + mx, p.y + 1, 9, 1);
+          }
+          break;
+        }
+        case 'langue': {
+          // la liseuse s'allume quand Dayen lit
+          g.fillStyle = col;
+          g.fillRect(p.x + 10, p.y + 12, 11, 3);
+          break;
+        }
         case 'jury': {
           g.fillStyle = '#141a2c';
           g.fillRect(p.x + 23, p.y + 2, 7, 6);
