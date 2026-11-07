@@ -5,7 +5,8 @@ import type { ActKind, OfficeEvent, PlanItem, Role } from '../../shared/protocol
 import { Cat } from './cat.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
-import { CHEF_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
+import { NAMES } from '../../shared/activity.ts';
+import { CHEF_SEAT, PATRON_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
 import { findPath, type Tile } from './path.ts';
 import type { Dir, Eyes, Pose } from './robots.ts';
 
@@ -122,6 +123,8 @@ export class World {
   }
 
   get chef() { return this.actors.get('chef')!; }
+  /** Younes, le patron, toujours à son bureau au centre */
+  get patron() { return this.actors.get('patron')!; }
 
   onRoster(fn: () => void) { this.rosterListeners.add(fn); return () => this.rosterListeners.delete(fn); }
   private rosterChanged() {
@@ -144,6 +147,9 @@ export class World {
     this.planSize = -1;
     const p = SPOTS.receptionPx;
     this.actors.set('chef', new Actor('chef', 'chef', 'Max', p.x, p.y));
+    const boss = new Actor('patron', 'patron', NAMES.patron[0] ?? 'Younes', PATRON_SEAT.x, PATRON_SEAT.y);
+    this.snapSeat(boss, PATRON_SEAT);
+    this.actors.set('patron', boss);
     this.rosterChanged();
   }
 
@@ -348,9 +354,9 @@ export class World {
         break;
       case 'end':
         this.missionActive = false;
-        for (const a of this.actors.values()) if (a !== chef && !a.left) { a.left = true; if (live) this.exit(a); else this.remove(a); }
+        for (const a of this.actors.values()) if (a !== chef && a.role !== 'patron' && !a.left) { a.left = true; if (live) this.exit(a); else this.remove(a); }
         if (live) {
-          if (ev.ok) { this.fx.rain(22 * T); chef.happyUntil = this.time + 3; }
+          if (ev.ok) { this.fx.rain(22 * T); chef.happyUntil = this.time + 3; this.patron.cheerUntil = this.time + 2.6; }
           chef.tasks = [];
           this.queue(chef,
             { t: 'walk', tile: SPOTS.reception, then: SPOTS.receptionPx },
@@ -403,6 +409,7 @@ export class World {
         this.fx.paper({ x: a.x, y: a.y - 12 }, this.inboxPt, () => { this.inbox++; this.fx.sparkle(this.inboxPt.x, this.inboxPt.y, 6, '#ffd2a8'); });
         a.happyUntil = this.time + 1.2;
         this.chef.happyUntil = this.time + 1.2;
+        this.patron.happyUntil = this.time + 1.4;
       } },
       { t: 'wait', ms: 700, dir: 'up' },
       { t: 'call', fn: () => { this.deliverTaken.delete(spot); a.delivered = true; } },
@@ -455,7 +462,7 @@ export class World {
     for (const until of this.wiggles.values()) if (until > this.time) moving = true;
     for (const a of this.actors.values()) {
       if (a.id.startsWith('demo-') && this.time - a.actAt > 2 + Math.random() * 3) {
-        const kinds: ActKind[] = a.role === 'recherche' ? ['search', 'web'] : a.role === 'code' ? ['write', 'bash'] : a.role === 'analyse' ? ['read', 'write'] : ['write', 'edit'];
+        const kinds: ActKind[] = a.role === 'equations' ? ['search', 'web'] : a.role === 'jury' || a.role === 'langue' ? ['read', 'write'] : ['read', 'edit'];
         a.act = kinds[Math.floor(Math.random() * kinds.length)];
         a.actAt = this.time;
         this.fx.floatIcon(a.x, a.y - 24, iconFor(a.act));
@@ -474,7 +481,8 @@ export class World {
         if (this.runTask(a, task, dt) && a.cur === task) a.cur = null;
       }
       this.animate(a, dt);
-      if (a.moving || a.cur || a.seated || a.cheerUntil > this.time) moving = true;
+      // Younes, assis au repos, ne réveille pas le dessin (8 images par seconde au repos)
+      if (a.moving || a.cur || (a.seated && a.role !== 'patron') || a.cheerUntil > this.time) moving = true;
     }
     return moving;
   }
@@ -513,7 +521,7 @@ export class World {
 
   /** Pour la visite guidée sans mission : un agent par coin, assis à son bureau, qui travaille. */
   demoTeam(on: boolean) {
-    const demo: [string, Role, string][] = [['demo-1', 'recherche', 'Iris'], ['demo-2', 'recherche', 'Hugo'], ['demo-3', 'code', 'Ada'], ['demo-4', 'design', 'Frida'], ['demo-5', 'redaction', 'Colette'], ['demo-6', 'analyse', 'Marie']];
+    const demo: [string, Role, string][] = (['equations', 'jury', 'corrections', 'langue'] as Role[]).map((r, i) => [`demo-${i + 1}`, r, NAMES[r][0] ?? '']);
     if (on) {
       for (const [id, role, name] of demo) {
         if (this.actors.has(id)) continue;

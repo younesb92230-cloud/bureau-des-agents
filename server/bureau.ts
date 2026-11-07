@@ -9,10 +9,10 @@ import { existsSync, readFileSync, renameSync, watch, writeFileSync, type FSWatc
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { countStats, emptyStats } from '../shared/activity.ts';
-import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
+import { countStats, emptyStats, normRole } from '../shared/activity.ts';
+import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
 import { ClaudeProcess, Normalizer, type ClaudeBinary, type TurnResult } from './claude.ts';
-import { agentsJson, ALWAYS_ALLOWED, chefPrompt, SESSION_TOOLS } from './team.ts';
+import { agentsJson, ALWAYS_ALLOWED, chefPrompt, pluginDir, SESSION_TOOLS } from './team.ts';
 
 const RULES_FILE = 'Règlement du bureau.md';
 
@@ -240,7 +240,7 @@ export class Bureau {
       {
         bin: this.claude.path, cwd: cur.mission.folder, permissionMode: s.permission === 'ask' ? 'acceptEdits' : 'auto',
         model: s.chefModel || undefined, resume, tools: SESSION_TOOLS, allowedTools: ALWAYS_ALLOWED,
-        agents: agentsJson(s), appendSystemPrompt: chefPrompt(readRules(this.dir)), useApiKey: process.env.BUREAU_USE_API_KEY === '1',
+        agents: agentsJson(s), appendSystemPrompt: chefPrompt(readRules(this.dir)), pluginDir: pluginDir(), useApiKey: process.env.BUREAU_USE_API_KEY === '1',
       },
       (m) => {
         if (cur.live?.proc !== proc) return; // un ancien processus qui parle encore
@@ -423,7 +423,7 @@ export class Bureau {
         const ev = l.ev;
         if (ev.k === 'hire') {
           byId.set(ev.id, {
-            missionId: m.id, missionTitle: m.title, at: l.at, id: ev.id, name: ev.name, role: ev.role as Role, task: ev.task,
+            missionId: m.id, missionTitle: m.title, at: l.at, id: ev.id, name: ev.name, role: normRole(ev.role), task: ev.task,
             status: 'working', tools: 0, tokens: 0, ms: 0, report: '',
           });
         } else if (ev.k === 'report') {

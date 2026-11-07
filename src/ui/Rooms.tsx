@@ -3,6 +3,7 @@
 // historique, l'équipe et ses outils, la machine, les rendus et l'aperçu des sites créés.
 import { useEffect, useMemo, useState } from 'react';
 import { ROLE_TOOLS, ROLES, TOOL_INFO } from '../../shared/activity.ts';
+import { ACCESSOIRES, EQUIPE, type Accessoire, type Membre } from '../../shared/equipe.ts';
 import type { PlanItem, Role } from '../../shared/protocol.ts';
 import { jukebox, TRACKS } from '../audio/music.ts';
 import { sfx } from '../audio/sfx.ts';
@@ -12,7 +13,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { fileIcon, fmtClock, fmtDate, fmtDuration, fmtSize, plural, readable, tilde } from './format.ts';
 import { party } from './interact.ts';
 import { mdToHtml } from './md.ts';
-import { Avatar } from './Panel.tsx';
+import { Avatar, useLooks } from './Panel.tsx';
+import { isCustom, lookFor, resetLook, setLook } from '../engine/looks.ts';
 import { tidy } from './tidy.ts';
 
 const ICON: Record<string, string> = {
@@ -64,7 +66,7 @@ function AgentRoom({ id }: { id: string }) {
         <Avatar role={a.role} size={72} />
         <div>
           <span className={`pill-status ${a.status}`}>{working ? (live?.seated ? 'Au travail' : 'En chemin') : a.status === 'done' ? 'A rendu son travail' : 'N’a pas pu finir'}</span>
-          <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? 'Son rapport est sur le bureau de Max.' : working ? 'Il s’installe à son poste…' : ''}</p>
+          <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? 'Son rapport est sur le bureau de Younes.' : working ? 'Il s’installe à son poste…' : ''}</p>
           <p className="small muted">Un vrai sous-agent Claude Code (« {role.type || 'renfort'} »), avec ses propres outils : {ROLE_TOOLS[a.role].join(', ') || 'ceux de Max'}.</p>
         </div>
       </div>
@@ -272,7 +274,45 @@ function JukeboxRoom() {
   );
 }
 
-// ── Toute l'équipe : les métiers et leurs outils, la mission en cours, l'historique ──
+// ── La fiche d'un membre de l'équipe (shared/equipe.ts), et son apparence ──
+const LOOK_FIELDS: [keyof ReturnType<typeof lookFor> & ('tete' | 'corps' | 'yeux'), string][] = [['tete', 'Tête'], ['corps', 'Corps'], ['yeux', 'Yeux']];
+
+function Fiche({ m, focus, sub, working }: { m: Membre; focus: boolean; sub: string; working: number }) {
+  useLooks();
+  const [edit, setEdit] = useState(false);
+  const look = lookFor(m.role);
+  return (
+    <div className={`role-card fiche ${focus ? 'focus' : ''}`} style={{ ['--c' as string]: m.couleur }}>
+      <div className="role-head"><Avatar role={m.role} size={46} /><div><b>{m.icon} {m.prenom} · {m.metier}</b><span>{sub}</span></div>{working > 0 && <em>{working} au travail</em>}</div>
+      <p>{m.enBref}</p>
+      <ul className="fiche-points">{m.points.map((p) => <li key={p}>{p}</li>)}</ul>
+      {m.outils.length > 0 && <div className="tools">{m.outils.map((t) => <span key={t} title={TOOL_INFO[t] ?? t}>{t}<small>{TOOL_INFO[t] ?? ''}</small></span>)}</div>}
+      {m.skills.length > 0 && (
+        <div className="fiche-skills">
+          <b>🎓 Ses skills</b>
+          {m.skills.map((k) => <p key={k.nom}><code>{k.nom}</code> {k.pourquoi}</p>)}
+        </div>
+      )}
+      <button className="btn small ghost" onClick={() => { sfx('click'); setEdit(!edit); }}>{edit ? 'Fermer' : '🎨 Changer son apparence'}</button>
+      {edit && (
+        <div className="look-edit">
+          {LOOK_FIELDS.map(([k, label]) => (
+            <label key={k}><span>{label}</span><input type="color" value={look[k]} onChange={(e) => setLook(m.role, { [k]: e.target.value })} /></label>
+          ))}
+          <label><span>Sur la tête</span>
+            <select value={look.accessoire} onChange={(e) => { sfx('tick'); setLook(m.role, { accessoire: e.target.value as Accessoire }); }}>
+              {(Object.entries(ACCESSOIRES) as [Accessoire, string][]).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </label>
+          <label className="radio"><input type="checkbox" checked={look.cravate} onChange={(e) => setLook(m.role, { cravate: e.target.checked })} /> Une cravate</label>
+          {isCustom(m.role) && <button className="btn small ghost" onClick={() => { sfx('click'); resetLook(m.role); }}>Revenir à l’apparence de départ</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Toute l'équipe : les fiches, la mission en cours, l'historique ──
 function TeamRoom({ role }: { role?: Role }) {
   const [tab, setTab] = useState<'roles' | 'now' | 'history'>(role ? 'roles' : 'now');
   const team = useOffice(useShallow(teamList));
@@ -283,7 +323,6 @@ function TeamRoom({ role }: { role?: Role }) {
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => { if (tab === 'history' && connection === 'live') send({ t: 'team_history' }); }, [tab, connection, send]);
   const working = (r: Role) => [...world.actors.values()].filter((a) => a.role === r && a.seated).length;
-  const roles: Role[] = ['chef', 'recherche', 'code', 'design', 'redaction', 'analyse'];
   const missions = useMemo(() => {
     const m = new Map<string, { title: string; at: number; entries: NonNullable<typeof history> }>();
     for (const e of history ?? []) {
@@ -296,7 +335,7 @@ function TeamRoom({ role }: { role?: Role }) {
     <Shell title="Toute l’équipe" sub="De vrais agents Claude Code, chacun avec son métier et ses outils" wide>
       <div className="seg tabs">
         <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>Cette mission</button>
-        <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>Les métiers</button>
+        <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>Les fiches</button>
         <button className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>L’historique</button>
       </div>
       {tab === 'now' && (team.length ? (
@@ -313,13 +352,10 @@ function TeamRoom({ role }: { role?: Role }) {
       ) : <p className="muted">Personne au bureau pour l’instant. Donne une mission à Max : il appellera les bons agents.</p>)}
       {tab === 'roles' && (
         <div className="roles">
-          {roles.map((r) => (
-            <div key={r} className={`role-card ${role === r ? 'focus' : ''}`} style={{ ['--c' as string]: ROLES[r].color }}>
-              <div className="role-head"><Avatar role={r} size={34} /><div><b>{ROLES[r].icon} {ROLES[r].label}</b><span>{r === 'chef' ? 'Max' : `agent « ${ROLES[r].type} »`} · cerveau : {r === 'chef' ? settings.chefModel || 'par défaut' : settings.teamModel === 'inherit' ? 'comme Max' : settings.teamModel}</span></div>{working(r) > 0 && <em>{working(r)} au travail</em>}</div>
-              <p>{ROLES[r].what}</p>
-              <div className="tools">{ROLE_TOOLS[r].map((t) => <span key={t} title={TOOL_INFO[t] ?? t}>{t}<small>{TOOL_INFO[t] ?? ''}</small></span>)}</div>
-            </div>
-          ))}
+          {EQUIPE.map((m) => {
+            const brain = m.role === 'patron' ? 'un vrai humain' : m.role === 'chef' ? `cerveau : ${settings.chefModel || 'par défaut'}` : `cerveau : ${settings.teamModel === 'inherit' ? 'comme Max' : settings.teamModel}`;
+            return <Fiche key={m.role} m={m} focus={role === m.role} sub={`${m.type ? `agent « ${m.type} »` : m.role === 'chef' ? 'l’agent principal' : 'au centre du bureau'} · ${brain}`} working={m.type ? working(m.role) : 0} />;
+          })}
         </div>
       )}
       {tab === 'history' && (

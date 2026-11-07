@@ -42,6 +42,24 @@ npm start
 
 Il te faut [Node.js](https://nodejs.org) 22.18 ou plus récent. Pour arrêter le bureau : `Ctrl + C` dans le terminal.
 
+## L'équipe du mémoire
+
+Ce bureau est réglé pour Younes, qui écrit son mémoire de kinésithérapie (une revue systématique). Younes est au centre, à son bureau de patron, et chacun a son coin :
+
+| | Qui | Ce qu'il fait | Son skill |
+|---|---|---|---|
+| 👑 | **Younes** | Le patron : écrit le mémoire et tranche. Tous les rapports finissent sur son bureau. | |
+| ⭐ | **Max** | Chef de projet : fait le plan et appelle le bon membre de l'équipe. Son poste est juste devant celui de Younes. | |
+| 🔎 | **Virgile** | Équations de recherche et bases (PubMed, PEDro, CENTRAL, SPORTDiscus, registres). | `memoire:equation-de-recherche` |
+| ⚖️ | **Adrien** | Joue le jury : critique la méthode et prépare les questions de la soutenance. | `memoire:relecture-jury` |
+| ✏️ | **Nathan** | Corrections : orthographe, typographie, références, bibliographie. | `memoire:corrections-memoire` |
+| 🌍 | **Dayen** | Langue et sens : vérifie que chaque mot repris d'un article garde son sens exact. | `memoire:sens-des-mots` |
+
+- **Les fiches** : clique sur Younes, sur un écriteau ou sur un bureau vide, puis « Les fiches ». Chaque fiche montre ce que fait l'agent, ses outils et ses skills.
+- **L'apparence** : dans chaque fiche, « 🎨 Changer son apparence » (couleur de la tête, du corps, des yeux, ce qu'il porte sur la tête, une cravate). Le changement se voit tout de suite et reste dans ton navigateur.
+- **Changer l'équipe** (prénom, métier, consignes, outils, apparence de départ) : tout est dans un seul fichier, [`shared/equipe.ts`](shared/equipe.ts).
+- **Les skills** : ce sont les méthodes de travail de chaque agent, rangées dans [`equipe/plugin/skills/`](equipe/plugin/skills/) (un fichier `SKILL.md` par méthode). Le bureau les charge au lancement (`--plugin-dir`) ; chaque agent a l'outil `Skill` et sait laquelle appliquer. Pour en ajouter une : crée un dossier avec son `SKILL.md`, puis ajoute son nom (`memoire:nom-du-dossier`) dans la fiche de l'agent.
+
 ## Ta première mission
 
 Écris à Max, au clavier ou à la voix (🎙️). Quelques idées :

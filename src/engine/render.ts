@@ -54,7 +54,7 @@ export class Renderer {
     if (Math.sin(t * 0.9) <= 0.985) neon(g, tube, core);
     // les écriteaux : le nom du coin, et combien d'agents y travaillent en ce moment
     const busy = new Map<string, number>();
-    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef') busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
+    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef' && a.role !== 'patron') busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
     signs(g, (role) => busy.get(role) ?? 0);
 
     // qui est assis à quel bureau
@@ -104,7 +104,7 @@ export class Renderer {
       const on = t - who.actAt < 9;
       const col = on && who.act ? SCREEN[who.act] : '#5b6b8c';
       switch (f.role) {
-        case 'code': {
+        case 'chef': {
           // le reflet de l'écran sur les bords des moniteurs
           for (const mx of [1, 22]) {
             g.fillStyle = col;
@@ -112,15 +112,13 @@ export class Renderer {
           }
           break;
         }
-        case 'design': {
-          const cols = ['#ff6fa8', '#ffd166', '#4fb3ff', '#a98bff', P.orange];
-          for (let i = 0; i < 11; i++) {
-            g.fillStyle = cols[(i + Math.floor(t * (on ? 6 : 1))) % cols.length];
-            g.fillRect(p.x + 10 + i, p.y + 12 + (i % 3 === 0 ? 1 : 0), 1, i % 2 ? 2 : 3);
-          }
+        case 'langue': {
+          // la liseuse s'allume quand Dayen lit
+          g.fillStyle = col;
+          g.fillRect(p.x + 10, p.y + 12, 11, 3);
           break;
         }
-        case 'analyse': {
+        case 'jury': {
           g.fillStyle = '#141a2c';
           g.fillRect(p.x + 23, p.y + 2, 7, 6);
           const bars = ['#ffd166', P.orange, '#4fb3ff', '#3ddc97'];
@@ -344,9 +342,9 @@ export class Renderer {
       const on = t - a.actAt < 9;
       const col = on && a.act ? SCREEN[a.act] : '#8fa4d0';
       const sx = a.seat!.x, sy = a.seat!.y - 12;
-      add(sx, sy, on ? 26 : 18, a.role === 'design' && on ? '#ff9fd0' : col, on ? 0.75 : 0.35);
+      add(sx, sy, on ? 26 : 18, col, on ? 0.75 : 0.35);
     }
-    // un projecteur doux suit Max (le patron reste toujours bien visible)
+    // un projecteur doux suit Max (on le voit toujours bien)
     const chef = world.chef;
     add(chef.x, (chef.seated && chef.seat ? chef.seat.y : chef.y) - 8, 26, '#ffe2c4', 0.42);
     // les yeux des robots

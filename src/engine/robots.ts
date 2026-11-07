@@ -1,9 +1,11 @@
 // Les robots du bureau : des cubes-robots, comme le logo de VibesMoney (visière noire, yeux orange).
-// Max, le chef, est le robot noir du logo ; l'équipe est blanche, avec la couleur de son métier
-// et un accessoire (le béret du designer, les lunettes de l'analyste…). Tout est dessiné en code,
+// Max, le chef, est le robot noir du logo ; Younes porte la couronne du patron ; l'équipe est blanche,
+// avec la couleur de son métier et un accessoire (la toque du jury, le casque de Dayen…). L'apparence
+// de chacun vient de sa fiche (shared/equipe.ts et src/engine/looks.ts). Tout est dessiné en code,
 // pose par pose, puis gardé en mémoire.
 import type { Role } from '../../shared/protocol.ts';
-import { ROLES } from '../../shared/activity.ts';
+import type { Accessoire } from '../../shared/equipe.ts';
+import { lookFor, onLooks } from './looks.ts';
 import { darken, g2d, lighten, makeCanvas, mirror, outline, P, px, rect } from './pixels.ts';
 
 export type Dir = 'down' | 'up' | 'left' | 'right';
@@ -17,35 +19,44 @@ export const ANCHOR_X = 10;
 export const ANCHOR_Y = 22;
 
 interface Look {
-  chef: boolean;
-  role: Role;
+  /** une tête foncée (comme Max) : contour et antenne plus sombres */
+  dark: boolean;
+  acc: Accessoire;
+  tie: boolean;
   top: string; front: string; shade: string; visor: string; visorHi: string;
   body: string; bodyHi: string; bodyShade: string;
   arm: string; hand: string; leg: string; tip: string;
+  eye: string; eyeHi: string; eyeDim: string; accent: string;
+}
+
+/** La clarté d'une couleur (0 = noir, 1 = blanc). */
+function luma(hex: string) {
+  const n = parseInt(hex.replace('#', '').padEnd(6, '0').slice(0, 6), 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
 }
 
 function lookOf(role: Role): Look {
-  if (role === 'chef') {
-    return {
-      chef: true, role,
-      top: '#77718a', front: '#4a4658', shade: '#33303f', visor: '#0b0910', visorHi: '#4a4566',
-      body: '#4a4658', bodyHi: '#615c73', bodyShade: '#33303f', arm: '#5a5569', hand: '#3d3a4a', leg: '#2a2734', tip: P.orange,
-    };
-  }
-  const c = ROLES[role].color;
+  const a = lookFor(role);
+  const dark = luma(a.tete) < 0.4;
+  const white = a.tete.toLowerCase() === '#ffffff';
+  const head = white
+    ? { top: '#ffffff', front: '#e8e5f1', shade: '#c4bfd4' }
+    : { top: lighten(a.tete, 0.3), front: a.tete, shade: darken(a.tete, 0.3) };
   return {
-    chef: false, role,
-    top: '#ffffff', front: '#e8e5f1', shade: '#c4bfd4', visor: '#15121c', visorHi: '#3d3852',
-    body: c, bodyHi: lighten(c, 0.3), bodyShade: darken(c, 0.25), arm: '#d7d3e2', hand: '#b9b4c9', leg: '#3a3547', tip: c,
+    dark, acc: a.accessoire, tie: a.cravate, ...head,
+    visor: '#15121c', visorHi: '#3d3852',
+    body: a.corps, bodyHi: lighten(a.corps, 0.3), bodyShade: darken(a.corps, 0.25),
+    arm: dark ? lighten(a.tete, 0.1) : '#d7d3e2', hand: dark ? darken(a.tete, 0.15) : '#b9b4c9', leg: dark ? '#2a2734' : '#3a3547',
+    tip: dark ? a.yeux : a.corps,
+    eye: a.yeux, eyeHi: lighten(a.yeux, 0.65), eyeDim: darken(a.yeux, 0.3),
+    // la couleur des accessoires : celle du corps, sauf si le corps est trop pâle ou trop sombre
+    accent: luma(a.corps) > 0.85 || luma(a.corps) < 0.2 ? a.yeux : a.corps,
   };
 }
 
-const EYE = P.orange;
-const EYE_HI = '#ffe2c4';
-const EYE_DIM = '#c8612a';
-
 /** Les yeux, dans la visière (vue de face). ox, oy = décalage du regard. */
-function drawEyes(g: CanvasRenderingContext2D, eyes: Eyes, bob: number) {
+function drawEyes(g: CanvasRenderingContext2D, L: Look, eyes: Eyes, bob: number) {
+  const EYE = L.eye, EYE_HI = L.eyeHi, EYE_DIM = L.eyeDim;
   const y0 = 8 + bob;
   if (eyes === 'blink') {
     rect(g, 7, y0 + 1, 2, 1, EYE_DIM);
@@ -81,7 +92,7 @@ function drawHead(g: CanvasRenderingContext2D, L: Look, dir: Dir, eyes: Eyes, bo
   if (dir === 'down') {
     rect(g, 6, y + 3, 8, 4, L.visor);
     rect(g, 6, y + 3, 3, 1, L.visorHi);
-    drawEyes(g, eyes, bob);
+    drawEyes(g, L, eyes, bob);
   } else if (dir === 'up') {
     // l'arrière de la tête : une petite grille d'aération
     rect(g, 8, y + 5, 4, 1, L.shade);
@@ -91,6 +102,7 @@ function drawHead(g: CanvasRenderingContext2D, L: Look, dir: Dir, eyes: Eyes, bo
     rect(g, 10, y + 3, 6, 4, L.visor);
     rect(g, 10, y + 3, 2, 1, L.visorHi);
     const oy = eyes === 'down' ? 1 : eyes === 'up' ? -1 : 0;
+    const EYE = L.eye, EYE_HI = L.eyeHi, EYE_DIM = L.eyeDim;
     if (eyes === 'blink') rect(g, 13, y + 5, 2, 1, EYE_DIM);
     else if (eyes === 'happy') { rect(g, 13, y + 4, 2, 1, EYE); px(g, 12, y + 5, EYE); }
     else { rect(g, 13, y + 4 + oy, 2, 2, EYE); px(g, 13, y + 4 + oy, EYE_HI); }
@@ -100,32 +112,50 @@ function drawHead(g: CanvasRenderingContext2D, L: Look, dir: Dir, eyes: Eyes, bo
 
 /** L'antenne, avec sa petite boule de couleur. */
 function drawAntenna(g: CanvasRenderingContext2D, L: Look, bob: number) {
-  rect(g, 9, 3 + bob, 2, 1, L.chef ? '#5b566a' : '#9d98ae');
+  rect(g, 9, 3 + bob, 2, 1, L.dark ? '#5b566a' : '#9d98ae');
   rect(g, 9, 1 + bob, 2, 2, L.tip);
   px(g, 9, 1 + bob, lighten(L.tip, 0.5));
 }
 
-/** Les accessoires de métier, par-dessus la tête. */
+/** Les accessoires, par-dessus la tête (on les choisit dans la fiche de chacun). */
 function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: number) {
   const y = bob;
-  switch (L.role) {
-    case 'design': { // un béret rose, penché
-      const c = ROLES.design.color;
+  const c = L.accent;
+  switch (L.acc) {
+    case 'beret': { // un béret, penché
       rect(g, 5, 2 + y, 10, 2, c);
       rect(g, 4, 3 + y, 12, 1, darken(c, 0.15));
       rect(g, 6, 1 + y, 6, 1, lighten(c, 0.25));
       px(g, 11, 0 + y, darken(c, 0.3));
       break;
     }
-    case 'recherche': { // un chapeau d'explorateur (il part à la chasse aux infos)
+    case 'chapeau': { // un chapeau d'explorateur (il part à la chasse aux articles)
       rect(g, 3, 4 + y, 14, 1, '#d6bd86');
       rect(g, 6, 1 + y, 8, 3, '#c7aa70');
       rect(g, 6, 3 + y, 8, 1, '#7c6337');
       rect(g, 7, 1 + y, 6, 1, '#e3cf9e');
       break;
     }
-    case 'code': { // un casque audio
-      const c = ROLES.code.color;
+    case 'couronne': { // la couronne du patron
+      const gold = '#ffd34d', goldDark = '#c9951c';
+      rect(g, 5, 2 + y, 10, 3, gold);
+      rect(g, 5, 4 + y, 10, 1, goldDark);
+      for (const x of [5, 9, 13]) { rect(g, x, 0 + y, 2, 2, gold); px(g, x, 0 + y, '#fff3b0'); }
+      px(g, 7, 3 + y, '#e5484d');
+      px(g, 10, 3 + y, '#4fb3ff');
+      px(g, 12, 3 + y, '#3ddc97');
+      break;
+    }
+    case 'toque': { // la toque de diplômé (le jury)
+      const k = '#24202e';
+      rect(g, 6, 2 + y, 8, 3, k);
+      rect(g, 2, 1 + y, 16, 2, '#3a3547');
+      rect(g, 2, 1 + y, 16, 1, '#4a4558');
+      if (dir === 'down' || dir === 'up') { px(g, 15, 3 + y, c); rect(g, 15, 4 + y, 1, 3, c); }
+      else { px(g, 5, 3 + y, c); rect(g, 5, 4 + y, 1, 3, c); }
+      break;
+    }
+    case 'casque': { // un casque audio
       rect(g, 4, 3 + y, 12, 1, '#2b2836');
       if (dir === 'left' || dir === 'right') {
         rect(g, 7, 6 + y, 3, 4, c);
@@ -138,9 +168,15 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
       }
       break;
     }
-    case 'analyse': { // des lunettes, sur la visière
+    case 'bandeau': { // un bandeau de sport, sur le front
+      rect(g, 4, 6 + y, 12, 2, c);
+      rect(g, 4, 6 + y, 12, 1, lighten(c, 0.3));
+      if (dir === 'up') { rect(g, 9, 8 + y, 1, 3, c); rect(g, 11, 8 + y, 1, 2, c); }
+      break;
+    }
+    case 'lunettes': { // des lunettes, sur la visière
+      const f = '#f3f1f8';
       if (dir === 'down') {
-        const f = '#f3f1f8';
         for (const x of [6, 10]) {
           rect(g, x, 7 + y, 4, 1, f);
           rect(g, x, 10 + y, 4, 1, f);
@@ -148,13 +184,13 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
           rect(g, x + 3, 7 + y, 1, 4, f);
         }
       } else if (dir !== 'up') {
-        rect(g, 12, 7 + y, 4, 1, '#f3f1f8');
-        rect(g, 12, 10 + y, 4, 1, '#f3f1f8');
-        rect(g, 12, 7 + y, 1, 4, '#f3f1f8');
+        rect(g, 12, 7 + y, 4, 1, f);
+        rect(g, 12, 10 + y, 4, 1, f);
+        rect(g, 12, 7 + y, 1, 4, f);
       }
       break;
     }
-    case 'redaction': { // un crayon sur l'oreille
+    case 'crayon': { // un crayon sur l'oreille
       if (dir === 'down') {
         px(g, 16, 3 + y, '#ff8fb1');
         rect(g, 16, 4 + y, 1, 5, '#ffd166');
@@ -180,12 +216,12 @@ function drawBodyFront(g: CanvasRenderingContext2D, L: Look, dir: Dir, limbs: Li
   rect(g, 6, y, 8, 1, L.bodyHi);
   rect(g, 6, y + 4, 8, 1, L.bodyShade);
   rect(g, 13, y + 1, 1, 3, L.bodyShade);
-  if (L.chef && dir === 'down') {
-    // la cravate orange du chef
-    rect(g, 9, y, 2, 1, P.orangeDark);
-    rect(g, 9, y + 1, 2, 2, P.orange);
-    px(g, 9, y + 3, P.orange);
-  } else if (!L.chef && dir === 'down') {
+  if (L.tie && dir === 'down') {
+    // la cravate (de la couleur des yeux)
+    rect(g, 9, y, 2, 1, darken(L.eye, 0.2));
+    rect(g, 9, y + 1, 2, 2, L.eye);
+    px(g, 9, y + 3, L.eye);
+  } else if (dir === 'down') {
     // un petit voyant sur la poitrine
     px(g, 8, y + 2, lighten(L.body, 0.55));
   }
@@ -253,7 +289,7 @@ function build(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes): HTM
   const walking = pose === 'walk';
   const f = frame % 4;
   const bob = walking ? (f === 1 || f === 3 ? -1 : 0) : pose === 'cheer' ? -(frame % 2) : 0;
-  const hatted = L.role === 'design' || L.role === 'recherche';
+  const hatted = L.acc === 'beret' || L.acc === 'chapeau' || L.acc === 'couronne' || L.acc === 'toque';
   if (dir === 'right') {
     drawBodySide(g, L, frame, walking, bob, pose);
     if (!hatted) drawAntenna(g, L, bob);
@@ -282,11 +318,13 @@ function build(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes): HTM
       if (pose === 'cheer') { const [lx, ly, lh] = limbs.la; rect(g, lx, ly + bob, 2, lh, L.arm); rect(g, lx, ly + bob, 2, 1, L.hand); }
     }
   }
-  outline(c, L.chef ? '#07060a' : P.ink);
+  outline(c, L.dark ? '#07060a' : P.ink);
   return c;
 }
 
 const cache = new Map<string, HTMLCanvasElement>();
+// une apparence a changé dans une fiche : on redessine tout
+onLooks(() => cache.clear());
 
 /** Le sprite d'un robot (gardé en mémoire : chaque pose n'est dessinée qu'une fois). */
 export function robotSprite(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes = 'open'): HTMLCanvasElement {

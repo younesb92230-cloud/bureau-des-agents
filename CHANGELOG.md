@@ -1,5 +1,13 @@
 # Les versions
 
+## L'équipe du mémoire (7 novembre 2026)
+
+- Une nouvelle équipe, une fiche par membre (shared/equipe.ts) : Virgile (équations et bases), Adrien (le jury), Nathan (corrections), Dayen (langue et sens).
+- Younes, le patron, au centre du bureau ; Max a son poste juste devant ; chacun a son coin et son écriteau.
+- L'apparence de chaque robot se change dans sa fiche (couleurs, accessoire, cravate).
+- Des skills pour chaque agent (equipe/plugin/skills/), chargés au lancement.
+- Les anciennes missions se rejouent encore : leurs métiers sont rangés dans ceux de la nouvelle équipe.
+
 ## v0.1.0 (14 octobre 2026)
 
 La première version publique.

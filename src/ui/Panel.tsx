@@ -1,11 +1,12 @@
 // Le panneau de droite : le plan de Max, l'équipe au travail (ce que chacun fait, son rapport),
 // les rendus (les fichiers produits) et le fil de ce qui se passe. Sans mission : comment ça marche.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
 import { robotSprite } from '../engine/robots.ts';
+import { looksVersion, onLooks } from '../engine/looks.ts';
 import { teamList, useOffice, type AgentView } from '../state/store.ts';
 import { EXAMPLES } from './Dialog.tsx';
 import { fmtDate, fmtDuration, tilde } from './format.ts';
@@ -13,14 +14,18 @@ import { mdToHtml } from './md.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
 
+/** Change à chaque retouche d'apparence (pour redessiner les portraits). */
+export const useLooks = () => useSyncExternalStore(onLooks, looksVersion);
+
 export function Avatar({ role, size = 32 }: { role: Role; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const v = useLooks();
   useEffect(() => {
     const g = ref.current!.getContext('2d')!;
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, 20, 24);
     g.drawImage(robotSprite(role, 'stand', 'down', 0, 'open'), 0, 0);
-  }, [role]);
+  }, [role, v]);
   return <canvas ref={ref} width={20} height={24} className="avatar" style={{ width: size * (20 / 24), height: size }} />;
 }
 

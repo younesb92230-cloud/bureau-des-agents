@@ -1,5 +1,6 @@
 // Les métiers du bureau, et la traduction en français de ce que fait vraiment chaque agent :
 // chaque outil de Claude Code devient une action (une icône, une animation, une bulle).
+import { EQUIPE } from './equipe.ts';
 import type { ActKind, MissionStats, OfficeEvent, Role } from './protocol.ts';
 
 export interface RoleInfo {
@@ -12,33 +13,32 @@ export interface RoleInfo {
   what: string;
 }
 
-export const ROLES: Record<Role, RoleInfo> = {
-  chef: { label: 'Chef de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Il reçoit ta demande, fait le plan, répartit le travail et assemble le rendu.' },
-  recherche: { label: 'Recherche', icon: '🔎', color: '#4FB3FF', type: 'chercheur', what: 'Cherche sur internet : concurrents, prix, avis, actualités, sources.' },
-  code: { label: 'Code', icon: '💻', color: '#3DDC97', type: 'developpeur', what: 'Code, sites, scripts, automatisations : ce qui se lance et se teste.' },
-  design: { label: 'Design', icon: '🎨', color: '#FF6FA8', type: 'designer', what: 'Pages web soignées, maquettes, visuels, mise en forme.' },
-  redaction: { label: 'Rédaction', icon: '✍️', color: '#A98BFF', type: 'redacteur', what: 'Posts, e-mails, articles, scripts vidéo, rapports.' },
-  analyse: { label: 'Analyse', icon: '📊', color: '#FFC93D', type: 'analyste', what: 'Chiffres, tableaux, fichiers, comparatifs, calculs.' },
-  renfort: { label: 'Renfort', icon: '🤖', color: '#9AA3B5', type: '', what: 'Un coup de main sur une tâche à part.' },
-};
+const RENFORT: RoleInfo = { label: 'Renfort', icon: '🤖', color: '#9AA3B5', type: '', what: 'Un coup de main sur une tâche à part.' };
+
+/** Les métiers, tirés des fiches de l'équipe (shared/equipe.ts). */
+export const ROLES = Object.fromEntries([
+  ...EQUIPE.map((m) => [m.role, { label: m.metier, icon: m.icon, color: m.couleur, type: m.type, what: m.enBref }]),
+  ['renfort', RENFORT],
+]) as Record<Role, RoleInfo>;
 
 /** Les outils Claude Code de chaque métier (le chef a tous ceux de la séance). */
-export const ROLE_TOOLS: Record<Role, string[]> = {
-  chef: ['Agent', 'TodoWrite', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Bash'],
-  recherche: ['WebSearch', 'WebFetch', 'Read', 'Glob', 'Grep'],
-  code: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'WebFetch'],
-  design: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch'],
-  redaction: ['Read', 'Write', 'Edit', 'Glob', 'Grep'],
-  analyse: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash'],
-  renfort: [],
-};
+export const ROLE_TOOLS = Object.fromEntries([...EQUIPE.map((m) => [m.role, m.outils]), ['renfort', []]]) as Record<Role, string[]>;
 
 /** Ce que veut dire chaque outil, en français (pour la fiche des métiers). */
 export const TOOL_INFO: Record<string, string> = {
   Agent: 'appelle un membre de l’équipe', TodoWrite: 'écrit et coche le plan', Read: 'lit un fichier', Write: 'crée un fichier',
   Edit: 'retouche un fichier', Glob: 'cherche des fichiers', Grep: 'cherche dans les fichiers', WebSearch: 'cherche sur internet',
-  WebFetch: 'lit une page web', Bash: 'lance une commande',
+  WebFetch: 'lit une page web', Bash: 'lance une commande', Skill: 'applique une de ses méthodes (skills)',
 };
+
+/** Les métiers des anciennes missions (avant l'équipe du mémoire), pour pouvoir encore les rejouer. */
+const OLD_ROLES: Record<string, Role> = { recherche: 'equations', analyse: 'jury', redaction: 'corrections', design: 'langue', code: 'renfort' };
+
+/** Le métier, même s'il vient d'une ancienne mission. */
+export function normRole(r: string): Role {
+  if (r in ROLES) return r as Role;
+  return OLD_ROLES[r] ?? 'renfort';
+}
 
 /** Le métier d'un agent, d'après le type d'agent que le chef a appelé. */
 export function roleOfType(type: string): Role {
@@ -46,16 +46,11 @@ export function roleOfType(type: string): Role {
   return 'renfort';
 }
 
-/** Les prénoms des robots, par métier (jamais deux fois le même dans une mission). */
-export const NAMES: Record<Role, string[]> = {
-  chef: ['Max'],
-  recherche: ['Iris', 'Hugo', 'Léa', 'Malo', 'Zoé', 'Noé', 'Inès', 'Tom', 'Jade', 'Sacha', 'Lou', 'Nils'],
-  code: ['Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis'],
-  design: ['Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],
-  redaction: ['Colette', 'Victor', 'Simone', 'Jules', 'George'],
-  analyse: ['Marie', 'Blaise', 'Émilie', 'Gaspard', 'Ada'],
-  renfort: ['Bob', 'Lulu', 'Gaston', 'Nina', 'Momo', 'Kiki'],
-};
+/** Les prénoms, par métier. Chaque membre de l'équipe a le sien ; un deuxième Virgile devient « Virgile 2 ». */
+export const NAMES = Object.fromEntries([
+  ...EQUIPE.map((m) => [m.role, [m.prenom]]),
+  ['renfort', ['Bob', 'Lulu', 'Gaston', 'Nina', 'Momo', 'Kiki']],
+]) as Record<Role, string[]>;
 
 const base = (p: unknown) => (typeof p === 'string' ? p.split(/[\\/]/).filter(Boolean).pop() ?? p : '');
 export const cut = (s: unknown, n = 60) => {
