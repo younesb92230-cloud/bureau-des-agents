@@ -33,8 +33,15 @@ export function interact(hit: Hit) {
       useOffice.setState({ draft: ' ' });
       return;
     }
+    if (hit.id === 'patron') {
+      // Younes : les fiches de toute l'équipe (et son apparence)
+      sfx('open');
+      world.patron.happyUntil = world.time + 1.5;
+      useOffice.setState({ modal: { kind: 'team', role: 'patron' } });
+      return;
+    }
     sfx('open');
-    useOffice.setState({ modal: { kind: 'agent', id: hit.id } });
+    useOffice.setState({ modal: st.agents[hit.id] ? { kind: 'agent', id: hit.id } : { kind: 'team', role: world.actors.get(hit.id)?.role } });
     return;
   }
   if (hit.kind === 'cat') {
@@ -48,7 +55,7 @@ export function interact(hit: Hit) {
     const deskId = id.startsWith('chair-') ? id.slice(6) : id;
     const who = [...world.actors.values()].find((a) => a.seated && a.seat?.deskId === deskId);
     sfx('open');
-    useOffice.setState({ modal: who ? { kind: 'agent', id: who.id } : { kind: 'team', role: hit.role } });
+    useOffice.setState({ modal: who && st.agents[who.id] ? { kind: 'agent', id: who.id } : { kind: 'team', role: hit.role } });
     return;
   }
   if (id.startsWith('zone:')) { sfx('open'); useOffice.setState({ modal: { kind: 'team', role: hit.role } }); return; }

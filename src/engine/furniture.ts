@@ -138,30 +138,25 @@ function deskSprite(role: Role, seed: number): Sprite {
   rect(g, 28, 24, 2, 3, P.woodLeg);
   // ce qu'il y a sur le bureau dépend du métier
   switch (role) {
-    case 'recherche':
+    case 'equations': // Virgile : l'ordinateur, le globe des bases de données, les articles trouvés
       laptop(g, 10, 8);
       globe(g, 2, 4);
       papers(g, 23, 11);
       break;
-    case 'code':
-      monitorBack(g, 1, 1);
-      monitorBack(g, 22, 1);
-      keyboard(g, 10, 13);
-      break;
-    case 'design':
-      tablet(g, 9, 11);
-      cactus(g, 2, 5);
-      swatches(g, 23, 10);
-      break;
-    case 'redaction':
-      laptop(g, 10, 8);
-      papers(g, 2, 10, 4);
-      mug(g, 24, 11, ROLES.redaction.color);
-      break;
-    case 'analyse':
+    case 'jury': // Adrien : la grille d'évaluation et la calculette des notes
       laptop(g, 9, 8);
       dashboard(g, 22, 1);
       calculator(g, 2, 9);
+      break;
+    case 'corrections': // Nathan : le manuscrit et son café
+      laptop(g, 10, 8);
+      papers(g, 2, 10, 4);
+      mug(g, 24, 11, ROLES.corrections.color);
+      break;
+    case 'langue': // Dayen : les dictionnaires du monde entier
+      laptop(g, 10, 8);
+      globe(g, 23, 4);
+      papers(g, 2, 10, 3);
       break;
     default:
       laptop(g, 10, 8);

@@ -1,7 +1,7 @@
 // La mémoire du bureau, côté navigateur : la mission en cours, l'équipe, le plan, les rendus, ce que
 // dit Max. Chaque événement venu du pont est rangé ici, puis transmis au moteur du jeu (les robots).
 import { create } from 'zustand';
-import { countStats, emptyStats } from '../../shared/activity.ts';
+import { countStats, emptyStats, normRole } from '../../shared/activity.ts';
 import type {
   ActKind, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, OfficeEvent, PlanItem, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo,
 } from '../../shared/protocol.ts';
@@ -215,7 +215,7 @@ export const useOffice = create<S>((set, get) => ({
         set({ versions: { ...s.versions, [`${m.missionId}|${m.file}`]: m.list } });
         break;
       case 'team_history':
-        set({ teamHistory: m.entries });
+        set({ teamHistory: m.entries.map((e) => ({ ...e, role: normRole(e.role) })) });
         break;
       case 'quota':
         set({ quota: m.quota });
@@ -232,7 +232,9 @@ export const useOffice = create<S>((set, get) => ({
     }
   },
 
-  apply: (ev, at, live) => {
+  apply: (ev0, at, live) => {
+    // une ancienne mission (recherche, analyse…) se rejoue avec les métiers de l'équipe du mémoire
+    const ev: OfficeEvent = ev0.k === 'hire' ? { ...ev0, role: normRole(ev0.role) } : ev0;
     const s = get();
     const feed = (who: string, text: string, kind: FeedLine['kind']) => {
       const line: FeedLine = { id: ++feedId, at, who, text, kind };

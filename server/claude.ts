@@ -50,6 +50,8 @@ export interface ProcessOptions {
   agents: string;
   /** les consignes du chef, ajoutées à celles de Claude Code */
   appendSystemPrompt: string;
+  /** le dossier des skills de l'équipe (un plugin Claude Code) ; vide s'il n'y en a pas */
+  pluginDir?: string;
   useApiKey: boolean;
 }
 
@@ -82,6 +84,7 @@ export class ClaudeProcess {
       '--restricted', '--tools', o.tools.join(','),
       '--agents', o.agents,
       '--append-system-prompt', o.appendSystemPrompt];
+    if (o.pluginDir) args.push('--plugin-dir', o.pluginDir);
     if (o.model) args.push('--model', o.model);
     if (o.resume) args.push('--resume', o.resume);
     if (o.allowedTools.length) args.push('--allowedTools', o.allowedTools.join(','));
@@ -189,6 +192,7 @@ export class Normalizer {
   private folder: string;
   /** les prénoms déjà pris dans cette mission (partagés entre les reprises) */
   private names: Set<string>;
+  private nameOf = new Map<string, string>();
 
   constructor(opts: { emit: (ev: OfficeEvent) => void; onQuota: (q: Quota) => void; onResult: (r: TurnResult) => void; folder: string; names: Set<string> }) {
     this.emit = opts.emit;
@@ -204,7 +208,9 @@ export class Normalizer {
   pendingRequests() { return [...this.pendingInputs.keys()]; }
 
   private pickName(role: Role) {
-    const name = NAMES[role].find((n) => !this.names.has(n)) ?? `${ROLES[role].label} ${this.names.size + 1}`;
+    const list = NAMES[role];
+    let name = list.find((n) => !this.names.has(n));
+    for (let i = 2; !name; i++) if (!this.names.has(`${list[0] ?? ROLES[role].label} ${i}`)) name = `${list[0] ?? ROLES[role].label} ${i}`;
     this.names.add(name);
     return name;
   }
@@ -268,6 +274,9 @@ export class Normalizer {
   private leave(id: string, ok: boolean, usage?: Json) {
     if (!this.present.has(id)) return;
     this.present.delete(id);
+    // son prénom se libère : le prochain Virgile appelé dans la mission s'appellera encore Virgile
+    const name = this.nameOf.get(id);
+    if (name) { this.names.delete(name); this.nameOf.delete(id); }
     this.emit({ k: 'leave', who: id, ok, tokens: Number(usage?.total_tokens ?? 0), tools: Number(usage?.tool_uses ?? 0), ms: Number(usage?.duration_ms ?? 0) });
   }
 
@@ -304,7 +313,9 @@ export class Normalizer {
           const type = String(input.subagent_type ?? '');
           const role = roleOfType(type);
           this.present.add(c.id);
-          this.emit({ k: 'hire', id: c.id, role, type, name: this.pickName(role), task: cut(input.description || ROLES[role].label, 48), prompt: cut(input.prompt, 2000) });
+          const agentName = this.pickName(role);
+          this.nameOf.set(c.id, agentName);
+          this.emit({ k: 'hire', id: c.id, role, type, name: agentName, task: cut(input.description || ROLES[role].label, 48), prompt: cut(input.prompt, 2000) });
         } else if (name === 'SubagentHandback') {
           this.reported.add(who);
           this.emit({ k: 'report', who, text: String(input.message ?? '').slice(0, 20000) });
